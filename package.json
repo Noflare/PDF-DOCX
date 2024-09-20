@@ -9,9 +9,28 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@accordproject/markdown-pdf": "^0.16.24",
+    "@opendocsg/pdf2md": "^0.1.31",
+    "@radix-ui/react-slot": "^1.1.0",
+    "axios": "^1.7.7",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "docx": "^8.5.0",
+    "file-saver": "^2.0.5",
+    "formidable": "^3.5.1",
+    "fs": "^0.0.1-security",
+    "fs-extra": "^11.2.0",
+    "lucide-react": "^0.440.0",
+    "multer": "^1.4.5-lts.1",
+    "next": "14.2.10",
+    "next-connect": "^1.0.0",
+    "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^4.6.82",
     "react": "^18",
     "react-dom": "^18",
-    "next": "14.2.10"
+    "tailwind-merge": "^2.5.2",
+    "tailwindcss-animate": "^1.0.7",
+    "tesseract.js": "^5.1.1"
   },
   "devDependencies": {
     "postcss": "^8",
