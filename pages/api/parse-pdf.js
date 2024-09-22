@@ -37,7 +37,6 @@ export default async function handler(req, res) {
       try {
         const pdfData = await pdfParse(dataBuffer);
         extractedText = pdfData.text.trim();
-        console.log('Extracted Text:', extractedText);
       } catch (parseError) {
         console.error('Error extracting text from PDF:', parseError);
       }
@@ -65,29 +64,67 @@ export default async function handler(req, res) {
       }
 
       // Step 4: Create a Word document from the extracted text
-const doc = new Document({
-  sections: [
-    {
-      properties: {},
-      children: extractedText.split('\n').map((paragraph) => {
-        const normalizedText = paragraph
-          .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
-          .normalize('NFC'); // Normalisation des caractères
+            const specialCharacters = ['●', '►', '•', '◦'];
+      
+      const doc = new Document({
+        sections: [
+          {
+            properties: {},
+            children: extractedText
+              .split('\n')
+              .map(line => line.trim()) // Trim each line to remove leading/trailing spaces
+              .reduce((acc, curr) => {
+                // Merge lines where mathematical expressions are split
+                if (
+                  /^[a-zA-Z]+\s*$/.test(curr) && acc.length > 0 || // Single variable or identifier
+                  /^[=+\-*/^(){}\[\]∑√π∞⋅∫≤≥≈≠±×÷≤≥∂∆∇∅≡∀∃∴∵⊕⊗∪∩⊆⊇∈∉∅⊂⊃∴∵⟶⟵∠∥∦]+$/.test(curr) || // Just mathematical symbols
+                  /[a-zA-Z0-9]$/.test(acc[acc.length - 1]) && /^[a-zA-Z0-9]/.test(curr) // Continuation of a number or letter
+                ) {
+                  acc[acc.length - 1] += ' ' + curr;
+                } else {
+                  acc.push(curr);
+                }
+                return acc;
+              }, [])
+              .join(' ') // Join all lines into one paragraph to handle long expressions
+              .split(new RegExp(`(${specialCharacters.join('|')})`)) // Split by special characters
+              .filter(part => part.trim() !== '') // Remove empty parts
+              .map(part => {
+                // Step 1: Normalize and clean up text
+                let normalizedText = part
+                  .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove unwanted control characters
+                  .normalize('NFC');
+      
+                // Step 2: Fix specific mathematical formatting issues
+                normalizedText = normalizedText
+                  .replace(/\s*([=+\-*/^(){}\[\]∑√π∞⋅∫≤≥≈≠±×÷≤≥∂∆∇∅≡∀∃∴∵⊕⊗∪∩⊆⊇∈∉∅⊂⊃∴∵⟶⟵∠∥∦])\s*/g, ' $1 ') // Ensure spacing around symbols
+                  .replace(/\s*-\s*/g, ' - ') // Handle minus sign spacing
+                  .replace(/\s*\+\s*/g, ' + ') // Handle plus sign spacing
+                  .replace(/\s*=\s*/g, ' = ') // Handle equal sign spacing
+                  .replace(/\s+/, ' ') // Replace multiple spaces with a single space
+                  .replace(/([a-zA-Z])\s*(\d+)/g, '$1$2') // Join letter-number combinations like x 1 -> x1
+                  .replace(/(\d+)\s*([a-zA-Z])/g, '$1$2') // Join number-letter combinations like 2 x -> 2x
+                  .replace(/\(\s+/g, '(') // Remove space after opening parenthesis
+                  .replace(/\s+\)/g, ')') // Remove space before closing parenthesis
+                  .replace(/([a-zA-Z])\s*\(\s*([a-zA-Z0-9])/g, '$1($2') // Join letter and parenthesis: f ( x ) -> f(x)
+                  .replace(/([a-zA-Z0-9])\s*\)\s*([a-zA-Z0-9])/g, '$1) $2') // Join parenthesis and next term: f(x) y -> f(x) y
+                  .replace(/\s*\)\s*-\s*\(/g, ') - ('); // Format subtraction between parentheses
+      
+                return new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: normalizedText.trim(),
+                      size: 24,
+                    }),
+                  ],
+                  spacing: { after: 200 },
+                });
+              }),
+          },
+        ],
+      });
 
-        return new Paragraph({
-          children: [
-            new TextRun({
-              text: normalizedText,
-              size: 24,
-            }),
-          ],
-          spacing: { after: 200 },
-        });
-      }),
-    },
-  ],
-});
-
+      
 
       const buffer = await Packer.toBuffer(doc);
 
